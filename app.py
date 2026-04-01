@@ -9,7 +9,7 @@ st.title("🗓️ 7 Kişilik Dev Kadro: Plan Panosu")
 
 DOSYA = "planlar.csv"
 
-# Tabloyu oluştur veya oku
+# Veri tabanını yükle veya oluştur
 if not os.path.exists(DOSYA):
     bos_tablo = pd.DataFrame(columns=["Kim", "Plan", "Tarih", "Katilanlar"])
     bos_tablo.to_csv(DOSYA, index=False)
@@ -49,11 +49,8 @@ st.divider()
 st.subheader("📌 Güncel Planlarımız")
 
 bugun = datetime.today().date()
-
-# Tabloyu şık bir şekilde oluşturuyoruz
 tablo_gorseli = "| Durum | Kim | Plan | Tarih | Katılanlar |\n|---|---|---|---|---|\n"
-
-gelecek_planlar = [] # Katılma menüsü için liste
+tum_planlar_listesi = [] # Silme ve Katılma menüleri için
 
 for index, row in df.iterrows():
     try:
@@ -61,43 +58,49 @@ for index, row in df.iterrows():
     except:
         plan_tarihi = bugun
         
+    plan_etiketi = f"{row['Plan']} ({row['Tarih']})"
+    tum_planlar_listesi.append(plan_etiketi)
+
     if plan_tarihi < bugun:
-        # GEÇMİŞ PLANLAR (Üstü çizili)
         tablo_gorseli += f"| ❌ Geçmiş | ~~{row['Kim']}~~ | ~~{row['Plan']}~~ | ~~{row['Tarih']}~~ | ~~{row['Katilanlar']}~~ |\n"
     else:
-        # GELECEK PLANLAR
         tablo_gorseli += f"| 🟢 Yaklaşan | **{row['Kim']}** | **{row['Plan']}** | {row['Tarih']} | {row['Katilanlar']} |\n"
-        gelecek_planlar.append(f"{row['Plan']} ({row['Tarih']})")
 
-# Tabloyu ekrana yansıt
 st.markdown(tablo_gorseli)
-
 st.divider()
 
-# 3. BÖLÜM: PLANA KATILMA BUTONU
-if gelecek_planlar:
-    st.subheader("🙋‍♀️ Bir Plana Katıl")
+# 3. BÖLÜM: PLANA KATILMA VE MANUEL SİLME
+col_katil, col_sil = st.columns(2)
+
+with col_katil:
+    st.subheader("🙋‍♀️ Plana Katıl")
     with st.form("katilma_formu", clear_on_submit=True):
-        secilen_plan_metni = st.selectbox("Hangi plana katılıyorsun?", gelecek_planlar)
-        katilacak_kisi = st.text_input("Senin Adın:")
+        # Sadece tarihi geçmemiş olanları filtreleyebiliriz ama kafa karışmasın diye hepsini gösteriyoruz
+        secilen_plan_katil = st.selectbox("Hangi plana?", tum_planlar_listesi, key="katil_select")
+        katilacak_kisi = st.text_input("Adın:")
         katil_btn = st.form_submit_button("Ben de Geliyorum!")
         
-        if katil_btn:
-            if katilacak_kisi:
-                # Seçilen planı ayıkla
-                secilen_plan_adi = secilen_plan_metni.rsplit(" (", 1)[0]
-                
-                # Tabloda o planı bul ve günvelle
-                for index, row in df.iterrows():
-                    if row['Plan'] == secilen_plan_adi:
-                        mevcut = str(row['Katilanlar'])
-                        if katilacak_kisi.lower() not in mevcut.lower():
-                            yeni_liste = mevcut + ", " + katilacak_kisi if mevcut else katilacak_kisi
-                            df.at[index, 'Katilanlar'] = yeni_liste
-                            df.to_csv(DOSYA, index=False)
-                            st.success("Plana katıldın!")
-                            st.rerun()
-                        else:
-                            st.warning("Adın zaten bu listede var!")
-            else:
-                st.warning("Lütfen adını yaz.")
+        if katil_btn and katilacak_kisi:
+            secilen_ad = secilen_plan_katil.rsplit(" (", 1)[0]
+            for idx, r in df.iterrows():
+                if r['Plan'] == secilen_ad:
+                    mevcut = str(r['Katilanlar'])
+                    if katilacak_kisi.lower() not in mevcut.lower():
+                        df.at[idx, 'Katilanlar'] = mevcut + ", " + katilacak_kisi if mevcut else katilacak_kisi
+                        df.to_csv(DOSYA, index=False)
+                        st.rerun()
+
+with col_sil:
+    st.subheader("🗑️ Planı Sil")
+    with st.form("silme_formu", clear_on_submit=True):
+        secilen_plan_sil = st.selectbox("Silinecek planı seç:", tum_planlar_listesi, key="sil_select")
+        st.write("⚠️ Bu işlem geri alınamaz.")
+        sil_btn = st.form_submit_button("Seçili Planı Sil")
+        
+        if sil_btn:
+            # Seçilen planı bul ve tablodan kaldır
+            silinecek_ad = secilen_plan_sil.rsplit(" (", 1)[0]
+            df = df[df['Plan'] != silinecek_ad]
+            df.to_csv(DOSYA, index=False)
+            st.warning("Plan silindi!")
+            st.rerun()
