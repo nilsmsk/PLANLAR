@@ -5,7 +5,7 @@ import os
 # Sayfa ayarları
 st.set_page_config(page_title="Bizim Planlar", page_icon="🗓️")
 
-st.title("🗓️ 7 Kişilik Dev Kadro: Plan Panosu")
+st.title("Planlar ? ")
 st.write("Kim, nerede, ne zaman? Planları aşağıya ekleyin, herkes görsün!")
 
 # Veri dosyamızın adı (Hafıza)
