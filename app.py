@@ -6,7 +6,6 @@ from datetime import datetime
 st.set_page_config(page_title="Bizim Planlar", page_icon="🗓️")
 
 st.title("🗓️ 7 Kişilik Dev Kadro: Plan Panosu")
-st.write("Kim, nerede, ne zaman? Planları aşağıya ekleyin, herkes görsün!")
 
 DOSYA = "planlar.csv"
 
@@ -17,13 +16,13 @@ if not os.path.exists(DOSYA):
 
 df = pd.read_csv(DOSYA)
 
-# Eski tabloyu bozmamak için güncelleme (önceki kodumuzda 'Katilanlar' sütunu yoktu)
 if "Katilanlar" not in df.columns:
     df["Katilanlar"] = ""
 df['Katilanlar'] = df['Katilanlar'].fillna('')
 
-# YENİ PLAN EKLEME FORMU
+# 1. BÖLÜM: YENİ PLAN EKLEME
 with st.form("plan_formu", clear_on_submit=True):
+    st.subheader("➕ Yeni Plan Ekle")
     col1, col2, col3 = st.columns(3)
     with col1:
         kim = st.text_input("Kim?")
@@ -36,55 +35,69 @@ with st.form("plan_formu", clear_on_submit=True):
 
     if ekle_butonu:
         if kim and plan:
-            # Planı ekleyen kişi otomatik olarak katılanlara da eklenir
             yeni_veri = pd.DataFrame([{"Kim": kim, "Plan": plan, "Tarih": tarih, "Katilanlar": kim}])
             df = pd.concat([df, yeni_veri], ignore_index=True)
             df.to_csv(DOSYA, index=False)
-            st.success("Plan başarıyla eklendi!")
+            st.success("Plan eklendi!")
             st.rerun()
         else:
             st.warning("Lütfen isim ve plan kısımlarını doldur.")
 
 st.divider()
+
+# 2. BÖLÜM: TABLO GÖRÜNÜMÜ
 st.subheader("📌 Güncel Planlarımız")
 
 bugun = datetime.today().date()
 
-# Planları tek tek ekrana şık kartlar halinde yazdırıyoruz
+# Tabloyu şık bir şekilde oluşturuyoruz
+tablo_gorseli = "| Durum | Kim | Plan | Tarih | Katılanlar |\n|---|---|---|---|---|\n"
+
+gelecek_planlar = [] # Katılma menüsü için liste
+
 for index, row in df.iterrows():
     try:
         plan_tarihi = datetime.strptime(str(row['Tarih']), "%Y-%m-%d").date()
     except:
-        plan_tarihi = bugun # Tarih formatında hata olursa sistemi çökertmemek için
+        plan_tarihi = bugun
         
     if plan_tarihi < bugun:
-        # 1. ÖZELLİK: GEÇMİŞ PLANLARIN ÜSTÜNÜ ÇİZ
-        st.markdown(f"~~**{row['Plan']}** - {row['Tarih']} (Ekleyen: {row['Kim']})~~")
-        st.caption(f"~~Katılanlar: {row['Katilanlar']}~~ *(Bu plan geçmiş)*")
-        st.divider()
+        # GEÇMİŞ PLANLAR (Üstü çizili)
+        tablo_gorseli += f"| ❌ Geçmiş | ~~{row['Kim']}~~ | ~~{row['Plan']}~~ | ~~{row['Tarih']}~~ | ~~{row['Katilanlar']}~~ |\n"
     else:
-        # GELECEK PLANLAR VE 2. ÖZELLİK: KATILMA BUTONU
-        st.markdown(f"🔥 **{row['Plan']}** - 📅 **{row['Tarih']}** (Ekleyen: {row['Kim']})")
-        st.write(f"👥 **Katılanlar:** {row['Katilanlar']}")
+        # GELECEK PLANLAR
+        tablo_gorseli += f"| 🟢 Yaklaşan | **{row['Kim']}** | **{row['Plan']}** | {row['Tarih']} | {row['Katilanlar']} |\n"
+        gelecek_planlar.append(f"{row['Plan']} ({row['Tarih']})")
+
+# Tabloyu ekrana yansıt
+st.markdown(tablo_gorseli)
+
+st.divider()
+
+# 3. BÖLÜM: PLANA KATILMA BUTONU
+if gelecek_planlar:
+    st.subheader("🙋‍♀️ Bir Plana Katıl")
+    with st.form("katilma_formu", clear_on_submit=True):
+        secilen_plan_metni = st.selectbox("Hangi plana katılıyorsun?", gelecek_planlar)
+        katilacak_kisi = st.text_input("Senin Adın:")
+        katil_btn = st.form_submit_button("Ben de Geliyorum!")
         
-        # Yan yana isim kutusu ve katılma butonu
-        colA, colB = st.columns([3, 1])
-        with colA:
-            yeni_katilan = st.text_input("Sen de mi geliyorsun? Adını yaz:", key=f"isim_{index}")
-        with colB:
-            st.write("") # Butonu kutuyla hizalamak için boşluk
-            st.write("")
-            if st.button("Ben de Geliyorum!", key=f"btn_{index}"):
-                if yeni_katilan:
-                    mevcut = str(df.at[index, 'Katilanlar'])
-                    # İsmi listede zaten yoksa ekle
-                    if yeni_katilan.lower() not in mevcut.lower():
-                        yeni_liste = mevcut + ", " + yeni_katilan if mevcut else yeni_katilan
-                        df.at[index, 'Katilanlar'] = yeni_liste
-                        df.to_csv(DOSYA, index=False)
-                        st.rerun()
-                    else:
-                        st.warning("Adın zaten listede!")
-                else:
-                    st.warning("Lütfen önce adını yaz.")
-        st.divider()
+        if katil_btn:
+            if katilacak_kisi:
+                # Seçilen planı ayıkla
+                secilen_plan_adi = secilen_plan_metni.rsplit(" (", 1)[0]
+                
+                # Tabloda o planı bul ve günvelle
+                for index, row in df.iterrows():
+                    if row['Plan'] == secilen_plan_adi:
+                        mevcut = str(row['Katilanlar'])
+                        if katilacak_kisi.lower() not in mevcut.lower():
+                            yeni_liste = mevcut + ", " + katilacak_kisi if mevcut else katilacak_kisi
+                            df.at[index, 'Katilanlar'] = yeni_liste
+                            df.to_csv(DOSYA, index=False)
+                            st.success("Plana katıldın!")
+                            st.rerun()
+                        else:
+                            st.warning("Adın zaten bu listede var!")
+            else:
+                st.warning("Lütfen adını yaz.")
