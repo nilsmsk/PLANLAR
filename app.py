@@ -131,7 +131,7 @@ st.subheader("🎡 KARAR VAKTİ")
 
 c1, c2 = st.columns([2, 1])
 with c1:
-    soru = st.selectbox("Çözülmesi gereken diferansiyel denklem (Karar konusu):", 
+    soru = st.selectbox("KARAR VAKTİ:", 
                       ["Hesabı kim ödeyecek?", "Nereye gidelim?", "Günün fotoğrafçısı kim olsun?"])
 with c2:
     st.write("") 
