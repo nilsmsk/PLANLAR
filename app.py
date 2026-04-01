@@ -5,7 +5,7 @@ import os
 # Sayfa ayarları
 st.set_page_config(page_title="Bizim Planlar", page_icon="🗓️")
 
-st.title("Planlar ? ")
+st.title("Planın nedir? ")
 st.write("Kim, nerede, ne zaman?")
 
 # Veri dosyamızın adı (Hafıza)
