@@ -12,21 +12,16 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# --- AMBLEM BÖLÜMÜ ---
-col_bos1, col_logo, col_bos3 = st.columns([1, 1, 1])
+# --- YTÜ AMBLEM BÖLÜMÜ ---
+col_bos1, col_logo, col_bos3 = st.columns([1, 0.8, 1])
 with col_logo:
-    if os.path.exists("amblem.png"):
-        st.image("amblem.png", use_container_width=True)
-    elif os.path.exists("amblem.jpg"):
-        st.image("amblem.jpg", use_container_width=True)
-    else:
-        st.image("https://images.unsplash.com/photo-1541167760496-1628856ab772?q=80&w=400&auto=format&fit=crop", use_container_width=True)
+    # YTÜ Resmi Logosu
+    st.image("https://upload.wikimedia.org/wikipedia/tr/b/be/Y%C4%B1ld%C4%B1z_Teknik_%C3%9Cniversitesi_Logosu.png", use_container_width=True)
 
 st.title("🗓️ 7 Kişilik Dev Kadro: Plan Panosu")
 
 # 1. KİMLİK BÖLÜMÜ
 st.info("💡 Önce ismini yaz, sonra butonlarla plana katıl!")
-# Girilen ismi otomatik büyük harfe çeviriyoruz
 kullanici_adi = st.text_input("Sen Kimsin?:", placeholder="Örn: MERVE").strip().upper()
 
 DOSYA = "planlar.csv"
@@ -71,10 +66,8 @@ for index, row in df.iterrows():
     plan_metni = f"~~{row['Plan']}~~" if gecmis else f"**{row['Plan']}**"
     tarih_metni = f"~~{row['Tarih']}~~" if gecmis else f"{row['Tarih']}"
     
-    # Katılanları işle: Büyük harf yap, listeye çevir, alfabetik sırala ve alt alta metin oluştur
     katilan_listesi = [x.strip().upper() for x in row['Katilanlar'].split(",") if x.strip()]
     katilan_listesi.sort()
-    # Alt alta liste formatı (Markdown)
     katilanlar_alt_alta = "\n".join([f"- {isim}" for isim in katilan_listesi])
 
     with st.container():
@@ -111,7 +104,6 @@ for index, row in df.iterrows():
                             df.to_csv(DOSYA, index=False)
                             st.rerun()
             
-            # Silme butonu en alta
             if st.button("🗑️ Planı Sil", key=f"del_{index}"):
                 df = df.drop(index)
                 df.to_csv(DOSYA, index=False)
