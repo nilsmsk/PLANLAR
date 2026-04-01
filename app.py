@@ -5,19 +5,19 @@ from datetime import datetime
 
 st.set_page_config(page_title="Bizim Planlar", page_icon="🗓️", layout="wide")
 
-# CSS ile butonları ve görünümü güzelleştirelim
+# CSS ile butonları ve görünümü güzelleştirelim (Buradaki ufak kelime hatası düzeltildi)
 st.markdown("""
     <style>
     .stButton>button { width: 100%; border-radius: 20px; }
     .plan-kart { border: 1px solid #ddd; padding: 15px; border-radius: 10px; margin-bottom: 10px; }
     </style>
-    """, unsafe_allow_stdio=True)
+    """, unsafe_allow_html=True)
 
 st.title("🗓️ 7 Kişilik Dev Kadro: Plan Panosu")
 
 # 1. KİMLİK BÖLÜMÜ (Tek seferlik isim girişi)
 st.info("💡 Önce ismini yaz, sonra planlardaki butonlara tek tıkla katıl veya ayrıl!")
-kullanici_adi = st.text_input("Sen Kimsin? (Butonları kullanmak için önce burayı doldur):", placeholder="Örn: Merve")
+kullanici_adi = st.text_input("Sen Kimsin? (Butonları kullanmak için önce burayı doldur):", placeholder="Örn: İsmini yaz")
 
 DOSYA = "planlar.csv"
 if not os.path.exists(DOSYA):
@@ -69,10 +69,10 @@ for index, row in df.iterrows():
             with col_katil:
                 if st.button("✅ Katıl", key=f"in_{index}"):
                     if kullanici_adi:
-                        liste = row['Katilanlar'].split(", ") if row['Katilanlar'] else []
+                        liste = [x.strip() for x in row['Katilanlar'].split(",") if x.strip()]
                         if kullanici_adi not in liste:
                             liste.append(kullanici_adi)
-                            df.at[index, 'Katilanlar'] = ", ".join(filter(None, liste))
+                            df.at[index, 'Katilanlar'] = ", ".join(liste)
                             df.to_csv(DOSYA, index=False)
                             st.rerun()
                     else: st.warning("İsim yaz!")
@@ -80,7 +80,7 @@ for index, row in df.iterrows():
             with col_ayril:
                 if st.button("❌ Ayrıl", key=f"out_{index}"):
                     if kullanici_adi:
-                        liste = row['Katilanlar'].split(", ")
+                        liste = [x.strip() for x in row['Katilanlar'].split(",") if x.strip()]
                         if kullanici_adi in liste:
                             liste.remove(kullanici_adi)
                             df.at[index, 'Katilanlar'] = ", ".join(liste)
@@ -88,7 +88,7 @@ for index, row in df.iterrows():
                             st.rerun()
         
         with col_sil:
-            if st.button("🗑️", key=f"del_{index}", help="Planı tamamen sil"):
+            if st.button("🗑️", key=f"del_{index}", help="Planı sil"):
                 df = df.drop(index)
                 df.to_csv(DOSYA, index=False)
                 st.rerun()
