@@ -5,7 +5,6 @@ from datetime import datetime
 
 st.set_page_config(page_title="Bizim Planlar", page_icon="🗓️", layout="wide")
 
-# CSS ile butonları ve görünümü güzelleştirelim (Buradaki ufak kelime hatası düzeltildi)
 st.markdown("""
     <style>
     .stButton>button { width: 100%; border-radius: 20px; }
@@ -15,9 +14,9 @@ st.markdown("""
 
 st.title("🗓️ 7 Kişilik Dev Kadro: Plan Panosu")
 
-# 1. KİMLİK BÖLÜMÜ (Tek seferlik isim girişi)
+# 1. KİMLİK BÖLÜMÜ
 st.info("💡 Önce ismini yaz, sonra planlardaki butonlara tek tıkla katıl veya ayrıl!")
-kullanici_adi = st.text_input("Sen Kimsin? (Butonları kullanmak için önce burayı doldur):", placeholder="Örn: İsmini yaz")
+kullanici_adi = st.text_input("Sen Kimsin? (Butonları kullanmak için önce burayı doldur):", placeholder="Örn: Merve")
 
 DOSYA = "planlar.csv"
 if not os.path.exists(DOSYA):
@@ -26,7 +25,14 @@ if not os.path.exists(DOSYA):
 df = pd.read_csv(DOSYA)
 df['Katilanlar'] = df['Katilanlar'].fillna('').astype(str)
 
-# --- YENİ PLAN EKLEME (Açılır Kapanır Menü yaptık ki yer kaplamasın) ---
+# --- AKILLI SIRALAMA MANTIĞI ---
+# Gelecek planları en üste, geçmiş planları en alta iter ve kendi içlerinde tarihe göre sıralar
+bugun_dt = pd.to_datetime('today').normalize()
+df['Tarih_Gecici'] = pd.to_datetime(df['Tarih'], errors='coerce')
+df['Gecmis_Mi'] = df['Tarih_Gecici'] < bugun_dt
+df = df.sort_values(by=['Gecmis_Mi', 'Tarih']).drop(columns=['Tarih_Gecici', 'Gecmis_Mi']).reset_index(drop=True)
+
+# --- YENİ PLAN EKLEME ---
 with st.expander("➕ Yeni Plan Oluştur"):
     with st.form("yeni_plan", clear_on_submit=True):
         col1, col2, col3 = st.columns(3)
@@ -37,6 +43,12 @@ with st.expander("➕ Yeni Plan Oluştur"):
             if p_kim and p_adi:
                 yeni = pd.DataFrame([{"Kim": p_kim, "Plan": p_adi, "Tarih": p_tarih, "Katilanlar": p_kim}])
                 df = pd.concat([df, yeni], ignore_index=True)
+                
+                # Yeni plan eklenince de listeyi tekrar düzgünce sıralayıp kaydet
+                df['Tarih_Gecici'] = pd.to_datetime(df['Tarih'], errors='coerce')
+                df['Gecmis_Mi'] = df['Tarih_Gecici'] < bugun_dt
+                df = df.sort_values(by=['Gecmis_Mi', 'Tarih']).drop(columns=['Tarih_Gecici', 'Gecmis_Mi']).reset_index(drop=True)
+                
                 df.to_csv(DOSYA, index=False)
                 st.rerun()
 
@@ -51,7 +63,6 @@ for index, row in df.iterrows():
     except:
         p_tarih = bugun
     
-    # Geçmiş plan mı?
     gecmis = p_tarih < bugun
     plan_metni = f"~~{row['Plan']}~~" if gecmis else f"**{row['Plan']}**"
     tarih_metni = f"~~{row['Tarih']}~~" if gecmis else f"{row['Tarih']}"
