@@ -93,4 +93,3 @@ for index, row in df.iterrows():
                 df.to_csv(DOSYA, index=False)
                 st.rerun()
         st.divider()
-
