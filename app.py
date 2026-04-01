@@ -3,104 +3,94 @@ import pandas as pd
 import os
 from datetime import datetime
 
-st.set_page_config(page_title="Bizim Planlar", page_icon="🗓️")
+st.set_page_config(page_title="Bizim Planlar", page_icon="🗓️", layout="wide")
+
+# CSS ile butonları ve görünümü güzelleştirelim
+st.markdown("""
+    <style>
+    .stButton>button { width: 100%; border-radius: 20px; }
+    .plan-kart { border: 1px solid #ddd; padding: 15px; border-radius: 10px; margin-bottom: 10px; }
+    </style>
+    """, unsafe_allow_stdio=True)
 
 st.title("🗓️ 7 Kişilik Dev Kadro: Plan Panosu")
 
-DOSYA = "planlar.csv"
+# 1. KİMLİK BÖLÜMÜ (Tek seferlik isim girişi)
+st.info("💡 Önce ismini yaz, sonra planlardaki butonlara tek tıkla katıl veya ayrıl!")
+kullanici_adi = st.text_input("Sen Kimsin? (Butonları kullanmak için önce burayı doldur):", placeholder="Örn: Merve")
 
-# Veri tabanını yükle veya oluştur
+DOSYA = "planlar.csv"
 if not os.path.exists(DOSYA):
-    bos_tablo = pd.DataFrame(columns=["Kim", "Plan", "Tarih", "Katilanlar"])
-    bos_tablo.to_csv(DOSYA, index=False)
+    pd.DataFrame(columns=["Kim", "Plan", "Tarih", "Katilanlar"]).to_csv(DOSYA, index=False)
 
 df = pd.read_csv(DOSYA)
+df['Katilanlar'] = df['Katilanlar'].fillna('').astype(str)
 
-if "Katilanlar" not in df.columns:
-    df["Katilanlar"] = ""
-df['Katilanlar'] = df['Katilanlar'].fillna('')
-
-# 1. BÖLÜM: YENİ PLAN EKLEME
-with st.form("plan_formu", clear_on_submit=True):
-    st.subheader("➕ Yeni Plan Ekle")
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        kim = st.text_input("Kim?")
-    with col2:
-        plan = st.text_input("Plan Nedir?")
-    with col3:
-        tarih = st.date_input("Ne Zaman?")
-    
-    ekle_butonu = st.form_submit_button("Plana Ekle!")
-
-    if ekle_butonu:
-        if kim and plan:
-            yeni_veri = pd.DataFrame([{"Kim": kim, "Plan": plan, "Tarih": tarih, "Katilanlar": kim}])
-            df = pd.concat([df, yeni_veri], ignore_index=True)
-            df.to_csv(DOSYA, index=False)
-            st.success("Plan eklendi!")
-            st.rerun()
-        else:
-            st.warning("Lütfen isim ve plan kısımlarını doldur.")
+# --- YENİ PLAN EKLEME (Açılır Kapanır Menü yaptık ki yer kaplamasın) ---
+with st.expander("➕ Yeni Plan Oluştur"):
+    with st.form("yeni_plan", clear_on_submit=True):
+        col1, col2, col3 = st.columns(3)
+        with col1: p_kim = st.text_input("Ekleyen Kim?")
+        with col2: p_adi = st.text_input("Plan Ne?")
+        with col3: p_tarih = st.date_input("Tarih?")
+        if st.form_submit_button("Sisteme Ekle"):
+            if p_kim and p_adi:
+                yeni = pd.DataFrame([{"Kim": p_kim, "Plan": p_adi, "Tarih": p_tarih, "Katilanlar": p_kim}])
+                df = pd.concat([df, yeni], ignore_index=True)
+                df.to_csv(DOSYA, index=False)
+                st.rerun()
 
 st.divider()
 
-# 2. BÖLÜM: TABLO GÖRÜNÜMÜ
-st.subheader("📌 Güncel Planlarımız")
-
+# --- PLAN LİSTESİ VE BUTONLAR ---
 bugun = datetime.today().date()
-tablo_gorseli = "| Durum | Kim | Plan | Tarih | Katılanlar |\n|---|---|---|---|---|\n"
-tum_planlar_listesi = [] # Silme ve Katılma menüleri için
 
 for index, row in df.iterrows():
     try:
-        plan_tarihi = datetime.strptime(str(row['Tarih']), "%Y-%m-%d").date()
+        p_tarih = datetime.strptime(str(row['Tarih']), "%Y-%m-%d").date()
     except:
-        plan_tarihi = bugun
+        p_tarih = bugun
+    
+    # Geçmiş plan mı?
+    gecmis = p_tarih < bugun
+    plan_metni = f"~~{row['Plan']}~~" if gecmis else f"**{row['Plan']}**"
+    tarih_metni = f"~~{row['Tarih']}~~" if gecmis else f"{row['Tarih']}"
+    
+    # Kart Tasarımı
+    with st.container():
+        col_bilgi, col_katil, col_ayril, col_sil = st.columns([4, 1.5, 1.5, 1])
         
-    plan_etiketi = f"{row['Plan']} ({row['Tarih']})"
-    tum_planlar_listesi.append(plan_etiketi)
-
-    if plan_tarihi < bugun:
-        tablo_gorseli += f"| ❌ Geçmiş | ~~{row['Kim']}~~ | ~~{row['Plan']}~~ | ~~{row['Tarih']}~~ | ~~{row['Katilanlar']}~~ |\n"
-    else:
-        tablo_gorseli += f"| 🟢 Yaklaşan | **{row['Kim']}** | **{row['Plan']}** | {row['Tarih']} | {row['Katilanlar']} |\n"
-
-st.markdown(tablo_gorseli)
-st.divider()
-
-# 3. BÖLÜM: PLANA KATILMA VE MANUEL SİLME
-col_katil, col_sil = st.columns(2)
-
-with col_katil:
-    st.subheader("🙋‍♀️ Plana Katıl")
-    with st.form("katilma_formu", clear_on_submit=True):
-        # Sadece tarihi geçmemiş olanları filtreleyebiliriz ama kafa karışmasın diye hepsini gösteriyoruz
-        secilen_plan_katil = st.selectbox("Hangi plana?", tum_planlar_listesi, key="katil_select")
-        katilacak_kisi = st.text_input("Adın:")
-        katil_btn = st.form_submit_button("Ben de Geliyorum!")
+        with col_bilgi:
+            durum = "❌" if gecmis else "🟢"
+            st.markdown(f"{durum} {plan_metni}  \n📅 {tarih_metni} | 👤 {row['Kim']}")
+            st.caption(f"👥 Katılanlar: {row['Katilanlar']}")
         
-        if katil_btn and katilacak_kisi:
-            secilen_ad = secilen_plan_katil.rsplit(" (", 1)[0]
-            for idx, r in df.iterrows():
-                if r['Plan'] == secilen_ad:
-                    mevcut = str(r['Katilanlar'])
-                    if katilacak_kisi.lower() not in mevcut.lower():
-                        df.at[idx, 'Katilanlar'] = mevcut + ", " + katilacak_kisi if mevcut else katilacak_kisi
-                        df.to_csv(DOSYA, index=False)
-                        st.rerun()
-
-with col_sil:
-    st.subheader("🗑️ Planı Sil")
-    with st.form("silme_formu", clear_on_submit=True):
-        secilen_plan_sil = st.selectbox("Silinecek planı seç:", tum_planlar_listesi, key="sil_select")
-        st.write("⚠️ Bu işlem geri alınamaz.")
-        sil_btn = st.form_submit_button("Seçili Planı Sil")
+        if not gecmis:
+            with col_katil:
+                if st.button("✅ Katıl", key=f"in_{index}"):
+                    if kullanici_adi:
+                        liste = row['Katilanlar'].split(", ") if row['Katilanlar'] else []
+                        if kullanici_adi not in liste:
+                            liste.append(kullanici_adi)
+                            df.at[index, 'Katilanlar'] = ", ".join(filter(None, liste))
+                            df.to_csv(DOSYA, index=False)
+                            st.rerun()
+                    else: st.warning("İsim yaz!")
+            
+            with col_ayril:
+                if st.button("❌ Ayrıl", key=f"out_{index}"):
+                    if kullanici_adi:
+                        liste = row['Katilanlar'].split(", ")
+                        if kullanici_adi in liste:
+                            liste.remove(kullanici_adi)
+                            df.at[index, 'Katilanlar'] = ", ".join(liste)
+                            df.to_csv(DOSYA, index=False)
+                            st.rerun()
         
-        if sil_btn:
-            # Seçilen planı bul ve tablodan kaldır
-            silinecek_ad = secilen_plan_sil.rsplit(" (", 1)[0]
-            df = df[df['Plan'] != silinecek_ad]
-            df.to_csv(DOSYA, index=False)
-            st.warning("Plan silindi!")
-            st.rerun()
+        with col_sil:
+            if st.button("🗑️", key=f"del_{index}", help="Planı tamamen sil"):
+                df = df.drop(index)
+                df.to_csv(DOSYA, index=False)
+                st.rerun()
+        st.divider()
+
