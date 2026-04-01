@@ -12,12 +12,6 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# --- YTÜ AMBLEM BÖLÜMÜ ---
-col_bos1, col_logo, col_bos3 = st.columns([1, 0.8, 1])
-with col_logo:
-    # YTÜ Resmi Logosu
-    st.image("https://upload.wikimedia.org/wikipedia/tr/b/be/Y%C4%B1ld%C4%B1z_Teknik_%C3%9Cniversitesi_Logosu.png", use_container_width=True)
-
 st.title("🗓️ 7 Kişilik Dev Kadro: Plan Panosu")
 
 # 1. KİMLİK BÖLÜMÜ
