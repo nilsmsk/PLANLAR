@@ -51,7 +51,7 @@ with st.expander("➕ Yeni Plan Oluştur"):
         
         c3, c4 = st.columns(2)
         with c3: p_tarih = st.date_input("Hangi Gün?")
-        with c4: p_saat = st.time_input("Saat?", value=time(19, 0)) # <-- Hata buradaydı, c4 olarak düzeltildi!
+        with c4: p_saat = st.time_input("Saat?", value=time(19, 0)) 
         
         if st.form_submit_button("Sisteme Ekle"):
             if p_kim and p_adi:
@@ -107,7 +107,6 @@ for index, row in df.iterrows():
                                 katilanlar.append(kullanici_adi)
                                 df.at[index, 'Katilanlar'] = ", ".join(katilanlar)
                                 df.to_csv(DOSYA, index=False, columns=["Kim", "Plan", "Tarih", "Saat", "Katilanlar"])
-                                st.balloons()
                                 st.toast(random.choice(komik_mesajlar))
                                 st.rerun()
                         else:
@@ -126,14 +125,14 @@ for index, row in df.iterrows():
                 st.rerun()
         st.divider()
 
-# --- 4. ÖZELLİK: NÜMERİK KARAR MEKANİZMASI ---
+# --- 4. ÖZELLİK:  KARAR VAKTİ ---
 st.markdown("<div class='kader-alani'>", unsafe_allow_html=True)
-st.subheader("🎡 Nümerik Karar Mekanizması")
+st.subheader("🎡 KARAR VAKTİ")
 
 c1, c2 = st.columns([2, 1])
 with c1:
     soru = st.selectbox("Çözülmesi gereken diferansiyel denklem (Karar konusu):", 
-                      ["Hesabı kim ödeyecek?", "Nereye gidelim?", "Kim kimi arabayla alacak?", "Günün fotoğrafçısı kim olsun?"])
+                      ["Hesabı kim ödeyecek?", "Nereye gidelim?", "Günün fotoğrafçısı kim olsun?"])
 with c2:
     st.write("") 
     st.write("")
