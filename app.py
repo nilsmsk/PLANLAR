@@ -13,7 +13,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-st.title("🗓️ 7 Kişilik Dev Kadro: Plan Panosu")
+st.title("🗓️ Plan Panosu")
 
 # 1. KİMLİK BÖLÜMÜ
 st.info("💡 Önce ismini yaz, sonra butonlarla plana katıl!")
